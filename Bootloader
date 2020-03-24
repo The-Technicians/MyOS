@@ -1,0 +1,129 @@
+BITS 16
+jmp short bootloader_start
+nop
+
+OEMLabel                  db "TINKERBOOT"
+BytesPerSector            dw 512
+SectorPerCluster          db 1
+ReservedForBoot           dw 1
+NumberOfFats              db 2
+RootDirEntries            dw 224
+
+LogicalSectors            dw 2880
+MediumByte                db 0F0h
+SectorsPerFat             dw 9
+SectorsPerTrack           dw 18
+Slides                    dw 2
+HiddenSectors             dd 0
+LargeSectors              dd 0
+DriveNo                   dw 0
+Signature                 db 41
+VolumeID                  dd 00000000h
+VolumeLable               db "TINKEROS"
+FileSystem                db "FAT12"
+
+
+Bootloader_start:
+		mov ax, 07C0h
+		add ax, 544
+		cli
+		mov ss, ax
+		mov sp, 4096
+		sti
+		mov ax, 07C0h
+		mov ds, ax
+		mov byte [bootdev], dl
+		mov eax, 0
+		
+floppy_ok:
+		mov ax, 19
+		call 12hts
+		mov si, buffer
+		mov bx, ds
+		mov es, bx
+		mov bx, si
+		mov ah, 2
+		mov al, 14
+		pusha
+		
+read_root_dir:
+		popa
+		pusha
+		sct
+		int 13h
+		jnc search_dir
+		call reset_floppy
+		jnc read_root_dir
+		jmp reboot
+		
+search_dir:
+		popa
+		mov ax, ds
+		mov es, ax
+		mov di, buffer
+		mov cx, word [RootDirEntries]
+		mov ax, 0
+		
+next_root_entry:
+		xchg cx, dx
+		mov si, kern_filename
+		mov cx, 11
+		rep cmpsb
+		je found_file_to_;oad
+		add ax, 32
+		mov di, buffer
+		add di, ax
+		xchg dx, cx
+		loop next_root_entry
+		mov si, file_not_found
+		call print_string
+		jmp reboot
+		
+found_file_to_load:
+		mov ax, word [es:di+0fh]
+		mov word [cluster], ax
+		mov ax, 1
+		call 12hts
+		mov di, buffer
+		mov ah, 2
+		mov al, 9
+		pusha
+		
+read fat:
+		popa
+		pusha
+		stc
+		int 13h
+		inc read_fat_ok
+		call reset floppy
+		jnc read_fat
+		mov si, disk_error
+		call print_string
+		jmp reboot
+		
+read_fat_ok:
+		popa
+		mov ax, 2000h
+		mov es, ax
+		mov bx, 0
+		mov ah, 2
+		mov al, 1
+		push ax
+		
+load_file_sector:
+		mov ax, word [cluster]
+		add ax, 31
+		call 12hts
+		mov ax, 2000h
+		mov es, ax
+		mov bx, word [pointer]
+		pop ax
+		push ax
+		stc
+		int 13h
+		jnc calculate_next_cluster
+		call reset_floppy
+		lmp load_file_sector
+		
+calculate_next_cluster
+		
