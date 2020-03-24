@@ -15,12 +15,12 @@ SectorsPerFat             dw 9
 SectorsPerTrack           dw 18
 Slides                    dw 2
 HiddenSectors             dd 0
-LargeSectors              dd 0
-DriveNo                   dw 0
-Signature                 db 41
-VolumeID                  dd 00000000h
-VolumeLable               db "TINKEROS"
-FileSystem                db "FAT12"
+LargeSectors			dd 0
+DriveNo					dw 0
+Signature				db 41
+VolumeID				dd 00000000h
+VolumeLable				db "TINKEROS"
+FileSystemdb "FAT12"
 
 
 Bootloader_start:
